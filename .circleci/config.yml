@@ -27,6 +27,8 @@ jobs:
       - image: "cimg/node:18.4.0-browsers"
     steps:
       - checkout
+      - attach_workspace:
+          at: ~/repo
       - aws-s3/sync:
           arguments: |
             --acl public-read \
