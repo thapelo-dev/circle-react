@@ -2,7 +2,7 @@ version: "2.1"
 orbs:
   aws-s3: circleci/aws-s3@3.0
 jobs:
-  build:
+  test-and-build:
     docker:
       - image: "cimg/node:18.4.0-browsers"
     working_directory: ~/repo
@@ -22,6 +22,11 @@ jobs:
           key: v1-dependencies-{{ checksum "package.json" }}
       - run: npm run test:ci
       - run: npm run build
+  s3-deployment:
+    docker:
+      - image: "cimg/node:18.4.0-browsers"
+    steps:
+      - checkout
       - aws-s3/sync:
           arguments: |
             --acl public-read \
@@ -32,6 +37,12 @@ jobs:
           from: build
           to: "s3://demo-ci-cd-app/"
 workflows:
-  s3-bucket-deployment:
+  build-and-deploy:
     jobs:
-      - build
+      - test-and-build
+      - s3-deployment:
+          requires:
+            - test-and-build
+          filters:
+            branches:
+              only: main
