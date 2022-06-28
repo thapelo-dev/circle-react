@@ -5,7 +5,6 @@ jobs:
   test-and-build:
     docker:
       - image: "cimg/node:18.4.0-browsers"
-    working_directory: ~/repo
     steps:
       - checkout
       - restore_cache:
@@ -22,13 +21,17 @@ jobs:
           key: v1-dependencies-{{ checksum "package.json" }}
       - run: npm run test:ci
       - run: npm run build
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/build
   s3-deployment:
     docker:
       - image: "cimg/node:18.4.0-browsers"
     steps:
       - checkout
       - attach_workspace:
-          at: ~/repo
+          at: ~/
       - aws-s3/sync:
           arguments: |
             --acl public-read \
