@@ -32,6 +32,6 @@ jobs:
           from: build
           to: "s3://demo-ci-cd-app/"
 workflows:
-  s3-example:
+  s3-bucket-deployment:
     jobs:
       - build
