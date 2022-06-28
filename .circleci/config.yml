@@ -1,45 +1,37 @@
-version: 2.1
-    orbs:
-      aws-s3: circleci/aws-s3@3.0.0
+version: "2.1"
+orbs:
+  aws-s3: circleci/aws-s3@3.0
+jobs:
+  build:
+    docker:
+      - image: "cimg/node:18.4.0-browsers"
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run: npm install
+      - save_cache:
+          paths:
+            - node_modules
+            - ~/.npm
+            - ~/.cache
+          key: v1-dependencies-{{ checksum "package.json" }}
+      - run: npm run test:ci
+      - run: npm run build
+      - aws-s3/sync:
+          arguments: |
+            --acl public-read \
+            --cache-control "max-age=86400"
+          aws-access-key-id: AWS_ACCESS_KEY_ID_BLUE
+          aws-region: AWS_REGION_BLUE
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY_BLUE
+          from: build
+          to: "s3://demo-ci-cd-app/"
+workflows:
+  s3-example:
     jobs:
-      build:
-        docker:
-          - image: cimg/node:18.4.0-browsers
-    
-        working_directory: ~/repo
-    
-        steps:
-          - checkout
-    
-          - restore_cache:
-              keys:
-                - v1-dependencies-{{ checksum "package.json" }}
-                # fallback to using the latest cache if no exact match is found
-                - v1-dependencies-
-          - run: npm install
-    
-          - save_cache:
-              paths:
-                - node_modules
-                - ~/.npm
-                - ~/.cache
-              key: v1-dependencies-{{ checksum "package.json" }}
-        
-          - run: npm run test:ci
-    
-          - run: npm run build
-    
-          - aws-s3/sync:
-              arguments: |
-                --acl public-read \
-                --cache-control "max-age=86400"
-              aws-access-key-id: AWS_ACCESS_KEY_ID_BLUE
-              aws-region: AWS_REGION_BLUE
-              aws-secret-access-key: AWS_SECRET_ACCESS_KEY_BLUE
-              from: build
-              to: "s3://demo-ci-cd-app/"
-              overwrite: true
-    workflows:
-    s3-build-example:
-      jobs:
-        - build
+      - build
